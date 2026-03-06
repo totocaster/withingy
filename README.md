@@ -7,6 +7,7 @@ It was transplanted from the `whoopy` codebase, so it keeps the same overall sha
 - Cobra-based CLI
 - XDG config and token storage
 - `auth`, `diag`, `stats`, and resource subcommands
+- root-level `--hpx` export for Hypercontext NDJSON
 - JSON-first output with optional `--text`
 - installable local binary via `make install`
 
@@ -25,6 +26,7 @@ builds from the current `main` branch. After the first release, plain
 
 ```bash
 withingy auth login|status|logout
+withingy --hpx [--since ... --until ... --last ... --limit ...]
 withingy activity list|today|view
 withingy measures list
 withingy sleep list|today|view
@@ -69,6 +71,25 @@ The auth flow is Withings-specific, not WHOOP-compatible:
 - refresh tokens rotate and are replaced on refresh
 
 The current Withings docs reviewed during the transplant say loopback redirect URIs may be disallowed, but the CLI still preserves the same localhost callback/manual-paste workflow that `whoopy` used. If automatic callback auth fails, use manual mode and inspect [`docs/status.md`](docs/status.md) for the current caveats.
+
+## Hypercontext export
+
+`withingy --hpx` emits canonical Hypercontext NDJSON to stdout.
+
+Examples:
+
+```bash
+withingy --hpx | hpx import
+withingy --hpx --last 30d | hpx import
+withingy --hpx --since 2026-03-01 --until 2026-03-07 | hpx import
+```
+
+The exporter currently emits:
+
+- body metrics for supported Withings measure groups
+- sleep signposts plus session metrics
+- workout signposts plus session metrics
+- summary documents for daily activity and unsupported measurement groups
 
 ## Development
 

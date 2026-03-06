@@ -1,6 +1,6 @@
 # withingy Transplant Status
 
-Last updated: 2026-03-06
+Last updated: 2026-03-07
 
 ## Goal
 
@@ -33,6 +33,11 @@ Transplant the existing `whoopy` Go CLI into `withingy`, preserving the same pro
   - `workouts list|today|view|export`
   - `stats daily`
   - `diag`
+- Added root-level Hypercontext provider export:
+  - `withingy --hpx`
+  - bounded export flags: `--since`, `--until`, `--last`, `--limit`
+  - emits canonical Hypercontext NDJSON for supported body, sleep, and workout data
+  - emits `summary` documents for daily activity and unsupported measurement groups so richer Withings data still imports cleanly
 - Reworked diagnostics to probe the Withings activity endpoint instead of the old WHOOP profile endpoint.
 - Rewrote the root `README.md` to describe the current Withings-based CLI.
 - Wrote the local machine config at `/Users/toto/.config/withingy/config.toml` using the credentials provided by the user.
@@ -48,6 +53,7 @@ Transplant the existing `whoopy` Go CLI into `withingy`, preserving the same pro
 
 ```text
 withingy auth login|status|logout
+withingy --hpx [--since ... --until ... --last ... --limit ...]
 withingy activity list|today|view
 withingy measures list
 withingy sleep list|today|view
@@ -64,6 +70,12 @@ withingy version
 - The old `internal/cycles`, `internal/profile`, and `internal/recovery` packages still exist in the tree as transplant leftovers, but they are no longer part of the active CLI surface.
 - The new `workouts view` command treats the workout ID as the workout `startdate` Unix timestamp because the reviewed Withings docs did not expose a clean WHOOP-style single-workout endpoint.
 - The new `sleep view` and `activity view` commands use `YYYY-MM-DD` identifiers.
+- The `--hpx` exporter maps only data that exists in the current Hypercontext schema registry:
+  - body metrics: `body.weight_kg`, `body.fat_pct`
+  - sleep signposts and session metrics
+  - workout signposts and session metrics
+  - daily activity and unsupported body measurements fall back to `summary` documents with structured `meta`
+- The `--hpx` exporter emits UTC timestamps and deterministic `origin_id` values for repeated imports.
 
 ## Known risks / gaps
 
@@ -71,6 +83,8 @@ withingy version
 - No live OAuth completion was run in this pass because that requires interactive user authorization.
 - The manual auth path successfully emits a Withings authorization URL from the installed binary, but the full callback/token-exchange path is still unverified.
 - Some new Withings response models were inferred from the official docs and historical endpoint behavior rather than generated from a first-party OpenAPI schema.
+- The current `--hpx` exporter does not expose `--updated-since`; bounded exports are time-window based rather than source-native update-cursor based.
+- The current Hypercontext schema does not register daily activity keys such as steps or distance, so that data is exported as `summary` documents instead of metrics.
 - The README and `docs/status.md` are current, but the older transplant carry-over docs under `docs/` are still historical and should be treated as non-authoritative unless updated.
 
 ## Recommended next steps
@@ -80,6 +94,10 @@ withingy version
   - `activity list --text`
   - `sleep list --text`
   - `workouts list --text`
+- Validate `withingy --hpx` against a live Hypercontext importer run:
+  - `withingy --hpx --last 30d | hpx import --dry-run`
+  - `withingy --hpx --last 30d | hpx import`
+  - repeat the same import to confirm idempotency
 - Tighten the data models and add targeted tests based on real Withings payloads.
 - Decide whether to keep the current Withings-native command surface or add aliases for users coming from `whoopy`.
 

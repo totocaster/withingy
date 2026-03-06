@@ -1,6 +1,6 @@
 # Release Setup Instructions
 
-This mirrors the `stamp` pipeline so we can tag `v0.1.0` confidently.
+This mirrors the `stamp` pipeline so we can tag releases confidently.
 
 ## ✅ Files Added Here
 
@@ -13,7 +13,7 @@ This mirrors the `stamp` pipeline so we can tag `v0.1.0` confidently.
 2. **Homebrew tap** – ensure `https://github.com/totocaster/homebrew-tap` exists (public) with a `Formula/` dir. A bootstrap `Formula/withingy.rb` can live there before the first release; GoReleaser will replace it with versioned release assets afterward.
 3. **Secrets** – `HOMEBREW_TAP_TOKEN` is already set in repo secrets (thanks!). Nothing else required for release.
 
-## 🚀 Cut a Release (v0.1.0)
+## 🚀 Cut a Release (example: v0.2.0)
 
 ```bash
 # ensure tree is clean
@@ -22,8 +22,8 @@ git status
 # update docs/changelog as needed, commit, push
 
 # tag and push
-git tag -a v0.1.0 -m "withingy v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "withingy v0.2.0"
+git push origin v0.2.0
 ```
 
 The release workflow runs automatically. Watch it under **Actions → Release**.
