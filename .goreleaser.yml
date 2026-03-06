@@ -1,0 +1,133 @@
+# GoReleaser configuration for whoopy.
+# Based on the stamp release pipeline.
+
+version: 2
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=0
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: whoopy
+    main: ./cmd/whoopy/main.go
+    binary: whoopy
+    ldflags:
+      - -s -w
+      - -X github.com/toto/whoopy/cmd/whoopy.version={{.Version}}
+      - -X github.com/toto/whoopy/cmd/whoopy.commit={{.Commit}}
+      - -X github.com/toto/whoopy/cmd/whoopy.date={{.Date}}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: whoopy-archive
+    name_template: >-
+      whoopy_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ .Tag }}-dev"
+
+release:
+  github:
+    owner: totocaster
+    name: whoopy
+  mode: replace
+  header: |
+    ## whoopy {{ .Version }} ({{ .Date }})
+
+  footer: |
+    ---
+
+    **Full Changelog**: https://github.com/totocaster/whoopy/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ## Installation
+
+    ### Homebrew (macOS/Linux)
+    ```bash
+    brew tap totocaster/tap
+    brew install whoopy
+    ```
+
+    ### Direct Download
+    Grab the archive for your platform from the assets below.
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^style:'
+      - 'typo'
+      - 'Merge pull request'
+      - 'Merge branch'
+
+  groups:
+    - title: '✨ Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: '🐛 Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: '📚 Documentation'
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: '🔧 Other Changes'
+      order: 999
+
+universal_binaries:
+  - id: whoopy-universal
+    ids:
+      - whoopy
+    name_template: "whoopy_{{ .Version }}_Darwin_universal"
+    replace: false
+
+brews:
+  - name: whoopy
+    repository:
+      owner: totocaster
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@users.noreply.github.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
+    homepage: "https://github.com/totocaster/whoopy"
+    description: "Unofficial WHOOP data CLI written in Go"
+    license: "MIT"
+    dependencies:
+      - name: go
+        type: optional
+    install: |
+      bin.install "whoopy"
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/whoopy --version")
+      assert_match "profile", shell_output("#{bin}/whoopy --help")

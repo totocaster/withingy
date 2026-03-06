@@ -1,0 +1,22 @@
+# Build artifacts
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+coverage.out
+
+# IDE / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Config caches
+whoopy.local.*
+
+# Token/config secrets
+.whoopy/
