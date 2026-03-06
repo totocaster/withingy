@@ -27,7 +27,9 @@ Transplant the existing `whoopy` Go CLI into `withingy`, preserving the same pro
   - `scopes = "user.metrics,user.activity"`
 - Added Withings-native CLI/resource layers:
   - `activity list|today|view`
+  - `measures list`
   - `sleep list|today|view`
+  - `weight list|latest`
   - `workouts list|today|view|export`
   - `stats daily`
   - `diag`
@@ -47,7 +49,9 @@ Transplant the existing `whoopy` Go CLI into `withingy`, preserving the same pro
 ```text
 withingy auth login|status|logout
 withingy activity list|today|view
+withingy measures list
 withingy sleep list|today|view
+withingy weight list|latest
 withingy workouts list|today|view|export
 withingy stats daily --date YYYY-MM-DD
 withingy diag [--text]

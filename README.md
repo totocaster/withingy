@@ -15,7 +15,9 @@ It was transplanted from the `whoopy` codebase, so it keeps the same overall sha
 ```bash
 withingy auth login|status|logout
 withingy activity list|today|view
+withingy measures list
 withingy sleep list|today|view
+withingy weight list|latest
 withingy workouts list|today|view|export
 withingy stats daily --date YYYY-MM-DD
 withingy diag [--text]
