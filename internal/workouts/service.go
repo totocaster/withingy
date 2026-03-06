@@ -58,7 +58,8 @@ func (s *Service) List(ctx context.Context, opts *api.ListOptions) (*ListResult,
 		return nil, err
 	}
 
-	start, end := unixRange(opts, s.now())
+	rangeStart, rangeEnd := resolvedWorkoutRange(opts, s.now())
+	start, end := rangeStart.UTC().Unix(), rangeEnd.UTC().Unix()
 	form := url.Values{}
 	form.Set("action", "getworkouts")
 	form.Set("startdate", strconv.FormatInt(start, 10))
@@ -73,7 +74,11 @@ func (s *Service) List(ctx context.Context, opts *api.ListOptions) (*ListResult,
 
 	workouts := make([]Workout, 0, len(body.Series))
 	for _, record := range body.Series {
-		workouts = append(workouts, convertWorkout(record))
+		workout := convertWorkout(record)
+		if workout.Start.Before(rangeStart) || !workout.Start.Before(rangeEnd) {
+			continue
+		}
+		workouts = append(workouts, workout)
 	}
 	return &ListResult{Workouts: workouts}, nil
 }
@@ -155,9 +160,9 @@ func defaultWorkoutOptions(now time.Time) *api.ListOptions {
 	return &api.ListOptions{Start: &start, End: &end}
 }
 
-func unixRange(opts *api.ListOptions, now time.Time) (int64, int64) {
+func resolvedWorkoutRange(opts *api.ListOptions, now time.Time) (time.Time, time.Time) {
 	if opts == nil || opts.Start == nil || opts.End == nil {
 		opts = defaultWorkoutOptions(now)
 	}
-	return opts.Start.UTC().Unix(), opts.End.UTC().Unix()
+	return opts.Start.UTC(), opts.End.UTC()
 }

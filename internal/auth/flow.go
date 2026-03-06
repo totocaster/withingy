@@ -259,13 +259,34 @@ func (f *Flow) scopeString() string {
 }
 
 type tokenResponse struct {
-	UserID       *int64 `json:"userid"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	Scope        string `json:"scope"`
-	CSRFToken    string `json:"csrf_token"`
+	UserID       *flexibleInt64 `json:"userid"`
+	AccessToken  string         `json:"access_token"`
+	RefreshToken string         `json:"refresh_token"`
+	TokenType    string         `json:"token_type"`
+	ExpiresIn    int            `json:"expires_in"`
+	Scope        string         `json:"scope"`
+	CSRFToken    string         `json:"csrf_token"`
+}
+
+type flexibleInt64 int64
+
+func (f *flexibleInt64) UnmarshalJSON(data []byte) error {
+	var number int64
+	if err := json.Unmarshal(data, &number); err == nil {
+		*f = flexibleInt64(number)
+		return nil
+	}
+
+	var raw string
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	parsed, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return fmt.Errorf("parse quoted int64: %w", err)
+	}
+	*f = flexibleInt64(parsed)
+	return nil
 }
 
 func signValues(secret string, values ...string) string {
