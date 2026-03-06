@@ -29,7 +29,7 @@ Transplant the existing `whoopy` Go CLI into `withingy`, preserving the same pro
   - `activity list|today|view`
   - `measures list`
   - `sleep list|today|view`
-  - `weight list|latest`
+  - `weight list|today|latest`
   - `workouts list|today|view|export`
   - `stats daily`
   - `diag`
@@ -57,7 +57,7 @@ withingy --hpx [--since ... --until ... --last ... --limit ...]
 withingy activity list|today|view
 withingy measures list
 withingy sleep list|today|view
-withingy weight list|latest
+withingy weight list|today|latest
 withingy workouts list|today|view|export
 withingy stats daily --date YYYY-MM-DD
 withingy diag [--text]

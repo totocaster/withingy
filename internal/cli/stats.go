@@ -87,6 +87,9 @@ func formatStatsText(report *stats.DailyReport) string {
 	if report == nil {
 		return "No stats available."
 	}
+	if report.Activity == nil && len(report.Sleep) == 0 && len(report.Workouts) == 0 {
+		return fmt.Sprintf("No data for %s.", report.Date)
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "Withings Stats - %s\n", report.Date)
 	fmt.Fprintf(&b, "\nSummary\n")

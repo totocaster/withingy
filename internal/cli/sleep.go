@@ -94,8 +94,8 @@ var sleepTodayCmd = &cobra.Command{
 }
 
 var sleepViewCmd = &cobra.Command{
-	Use:   "view <sleep-id>",
-	Short: "Show a single sleep summary by date",
+	Use:   "view <date>",
+	Short: "Show a single sleep summary by date (YYYY-MM-DD)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		textMode, err := cmd.Flags().GetBool("text")
@@ -163,7 +163,6 @@ func formatSleepDetailText(sess *sleep.Session) string {
 		return "Sleep summary not found."
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "ID: %s\n", sess.ID)
 	fmt.Fprintf(&b, "Date: %s\n", sess.Date)
 	fmt.Fprintf(&b, "Start: %s\n", formatTimestamp(sess.Start))
 	fmt.Fprintf(&b, "End: %s\n", formatTimestamp(sess.End))

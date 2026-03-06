@@ -338,7 +338,7 @@ func (s *Service) WeightList(ctx context.Context, opts *api.ListOptions) (*Weigh
 		weights = append(weights, WeightEntry{
 			GroupID:  group.ID,
 			TakenAt:  group.TakenAt,
-			WeightKG: measure.Value,
+			WeightKG: roundFloat(measure.Value, 2),
 		})
 	}
 	return &WeightListResult{Weights: weights}, nil
@@ -450,6 +450,14 @@ func normalizeTypeKey(value string) string {
 	normalized = strings.ReplaceAll(normalized, "_", "-")
 	normalized = strings.ReplaceAll(normalized, " ", "-")
 	return normalized
+}
+
+func roundFloat(value float64, places int) float64 {
+	if places < 0 {
+		return value
+	}
+	scale := math.Pow10(places)
+	return math.Round(value*scale) / scale
 }
 
 type measureGroupRecord struct {

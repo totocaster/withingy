@@ -21,9 +21,11 @@ var (
 func init() {
 	rootCmd.AddCommand(weightCmd)
 	weightCmd.AddCommand(weightListCmd)
+	weightCmd.AddCommand(weightTodayCmd)
 	weightCmd.AddCommand(weightLatestCmd)
 	addListFlags(weightListCmd)
 	weightListCmd.Flags().Bool("text", false, "Human-readable output")
+	weightTodayCmd.Flags().Bool("text", false, "Human-readable output")
 	weightLatestCmd.Flags().Bool("text", false, "Human-readable output")
 }
 
@@ -37,12 +39,38 @@ var weightCmd = &cobra.Command{
 
 var weightListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List weight measurements over a date range",
+	Short: "List weight measurements over a date range (defaults to last 30 days)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		opts, err := parseListOptions(cmd)
 		if err != nil {
 			return err
 		}
+		textMode, err := cmd.Flags().GetBool("text")
+		if err != nil {
+			return err
+		}
+		result, err := weightListFn(cmd.Context(), opts)
+		if err != nil {
+			return err
+		}
+		if textMode {
+			fmt.Fprintln(cmd.OutOrStdout(), formatWeightListText(result))
+			return nil
+		}
+		payload, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), string(payload))
+		return nil
+	},
+}
+
+var weightTodayCmd = &cobra.Command{
+	Use:   "today",
+	Short: "Show today's weight measurements",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		opts := todayRangeOptions(25)
 		textMode, err := cmd.Flags().GetBool("text")
 		if err != nil {
 			return err

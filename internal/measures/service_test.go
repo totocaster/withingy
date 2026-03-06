@@ -93,7 +93,7 @@ func TestServiceWeightListAndLatestSortNewestFirst(t *testing.T) {
 				GroupID:  2,
 				Date:     time.Date(2026, 1, 12, 7, 0, 0, 0, time.UTC).Unix(),
 				Category: CategoryReal,
-				Measures: []measureRecord{{Value: 69750, Type: TypeWeight, Unit: -3}},
+				Measures: []measureRecord{{Value: 104600, Type: TypeWeight, Unit: -3}},
 			},
 		},
 	}}
@@ -107,13 +107,13 @@ func TestServiceWeightListAndLatestSortNewestFirst(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, list.Weights, 2)
 	require.Equal(t, int64(2), list.Weights[0].GroupID)
-	require.InDelta(t, 69.75, list.Weights[0].WeightKG, 0.0001)
+	require.Equal(t, 104.6, list.Weights[0].WeightKG)
 
 	latest, err := svc.LatestWeight(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, latest)
 	require.Equal(t, int64(2), latest.GroupID)
-	require.InDelta(t, 69.75, latest.WeightKG, 0.0001)
+	require.Equal(t, 104.6, latest.WeightKG)
 }
 
 func TestParseTypesAcceptsAliasesAndCodes(t *testing.T) {

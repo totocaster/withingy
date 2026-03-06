@@ -87,13 +87,13 @@ func (s *Service) List(ctx context.Context, opts *api.ListOptions) (*ListResult,
 }
 
 // Get returns a single sleep summary by date (`YYYY-MM-DD`).
-func (s *Service) Get(ctx context.Context, id string) (*Session, error) {
-	if strings.TrimSpace(id) == "" {
-		return nil, fmt.Errorf("sleep id is required")
+func (s *Service) Get(ctx context.Context, date string) (*Session, error) {
+	if strings.TrimSpace(date) == "" {
+		return nil, fmt.Errorf("date is required")
 	}
-	t, err := time.Parse("2006-01-02", id)
+	t, err := time.Parse("2006-01-02", date)
 	if err != nil {
-		return nil, fmt.Errorf("sleep id must be YYYY-MM-DD")
+		return nil, fmt.Errorf("date must be YYYY-MM-DD")
 	}
 	opts := &api.ListOptions{Start: &t, End: endOfSleepDay(t)}
 	result, err := s.List(ctx, opts)
@@ -101,7 +101,7 @@ func (s *Service) Get(ctx context.Context, id string) (*Session, error) {
 		return nil, err
 	}
 	for _, sess := range result.Sleeps {
-		if sess.ID == id {
+		if sess.Date == date {
 			copy := sess
 			return &copy, nil
 		}
