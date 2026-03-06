@@ -10,6 +10,17 @@ It was transplanted from the `whoopy` codebase, so it keeps the same overall sha
 - JSON-first output with optional `--text`
 - installable local binary via `make install`
 
+## Install
+
+```bash
+brew tap totocaster/tap
+brew install --HEAD totocaster/tap/withingy
+```
+
+Until the first tagged release is published, the tap formula is HEAD-only and
+builds from the current `main` branch. After the first release, plain
+`brew install withingy` will work.
+
 ## Current command set
 
 ```bash

@@ -1,6 +1,3 @@
-# GoReleaser configuration for whoopy.
-# Based on the stamp release pipeline.
-
 version: 2
 
 env:
@@ -13,27 +10,27 @@ before:
     - go test ./...
 
 builds:
-  - id: whoopy
-    main: ./cmd/whoopy/main.go
-    binary: whoopy
+  - id: withingy
+    main: ./cmd/withingy
+    binary: withingy
     ldflags:
       - -s -w
-      - -X github.com/toto/whoopy/cmd/whoopy.version={{.Version}}
-      - -X github.com/toto/whoopy/cmd/whoopy.commit={{.Commit}}
-      - -X github.com/toto/whoopy/cmd/whoopy.date={{.Date}}
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
     goos:
       - darwin
       - linux
     goarch:
       - amd64
       - arm64
-    env:
-      - CGO_ENABLED=0
 
 archives:
-  - id: whoopy-archive
+  - id: withingy-archive
+    ids:
+      - withingy
     name_template: >-
-      whoopy_
+      withingy_
       {{- .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
@@ -44,7 +41,7 @@ archives:
       - README.md
 
 checksum:
-  name_template: "checksums.txt"
+  name_template: checksums.txt
   algorithm: sha256
 
 snapshot:
@@ -53,22 +50,22 @@ snapshot:
 release:
   github:
     owner: totocaster
-    name: whoopy
+    name: withingy
   mode: replace
   header: |
-    ## whoopy {{ .Version }} ({{ .Date }})
+    ## withingy {{ .Version }} ({{ .Date }})
 
   footer: |
     ---
 
-    **Full Changelog**: https://github.com/totocaster/whoopy/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/totocaster/withingy/compare/{{ .PreviousTag }}...{{ .Tag }}
 
     ## Installation
 
     ### Homebrew (macOS/Linux)
     ```bash
     brew tap totocaster/tap
-    brew install whoopy
+    brew install withingy
     ```
 
     ### Direct Download
@@ -89,27 +86,20 @@ changelog:
       - 'Merge branch'
 
   groups:
-    - title: '✨ Features'
+    - title: 'Features'
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
       order: 0
-    - title: '🐛 Bug Fixes'
+    - title: 'Bug Fixes'
       regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 1
-    - title: '📚 Documentation'
+    - title: 'Documentation'
       regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
       order: 2
-    - title: '🔧 Other Changes'
+    - title: 'Other Changes'
       order: 999
 
-universal_binaries:
-  - id: whoopy-universal
-    ids:
-      - whoopy
-    name_template: "whoopy_{{ .Version }}_Darwin_universal"
-    replace: false
-
 brews:
-  - name: whoopy
+  - name: withingy
     repository:
       owner: totocaster
       name: homebrew-tap
@@ -120,14 +110,11 @@ brews:
       email: goreleaserbot@users.noreply.github.com
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     directory: Formula
-    homepage: "https://github.com/totocaster/whoopy"
-    description: "Unofficial WHOOP data CLI written in Go"
+    homepage: "https://github.com/totocaster/withingy"
+    description: "Unofficial Withings data CLI written in Go"
     license: "MIT"
-    dependencies:
-      - name: go
-        type: optional
     install: |
-      bin.install "whoopy"
+      bin.install "withingy"
     test: |
-      assert_match version.to_s, shell_output("#{bin}/whoopy --version")
-      assert_match "profile", shell_output("#{bin}/whoopy --help")
+      assert_match "withingy", shell_output("#{bin}/withingy --version")
+      assert_match "activity", shell_output("#{bin}/withingy --help")
