@@ -12,13 +12,6 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		hpxMode, err := cmd.Flags().GetBool(hpxFlag)
-		if err != nil {
-			return err
-		}
-		if hpxMode {
-			return runHPXExport(cmd)
-		}
 		return cmd.Help()
 	},
 }

@@ -7,7 +7,6 @@ It was transplanted from the `whoopy` codebase, so it keeps the same overall sha
 - Cobra-based CLI
 - XDG config and token storage
 - `auth`, `diag`, `stats`, and resource subcommands
-- root-level `--hpx` export for Hypercontext NDJSON
 - JSON-first output with optional `--text`
 - installable local binary via `make install`
 
@@ -22,7 +21,6 @@ brew install withingy
 
 ```bash
 withingy auth login|status|logout
-withingy --hpx [--since ... --until ... --last ... --limit ...]
 withingy activity list|today|view
 withingy measures list
 withingy sleep list|today|view
@@ -116,7 +114,6 @@ For broader history and scripting:
 
 - `list` commands accept `--start`, `--end`, `--limit`, and `--cursor`.
 - Timestamps accept either RFC3339 or `YYYY-MM-DD`.
-- `withingy --hpx ...` emits Hypercontext NDJSON for imports.
 - `withingy completion <shell>` generates shell completions.
 
 ### Examples
@@ -149,25 +146,6 @@ withingy diag --text
 # Daily dashboard
 withingy stats daily --date 2026-03-03 --text
 ```
-
-## Hypercontext export
-
-`withingy --hpx` emits canonical Hypercontext NDJSON to stdout.
-
-Examples:
-
-```bash
-withingy --hpx | hpx import
-withingy --hpx --last 30d | hpx import
-withingy --hpx --since 2026-03-01 --until 2026-03-07 | hpx import
-```
-
-The exporter currently emits:
-
-- body metrics for supported Withings measure groups
-- sleep signposts plus session metrics
-- workout signposts plus session metrics
-- summary documents for daily activity and unsupported measurement groups
 
 ## Development
 
