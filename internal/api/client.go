@@ -14,6 +14,8 @@ import (
 
 	"github.com/toto/withingy/internal/auth"
 	"github.com/toto/withingy/internal/config"
+	"github.com/toto/withingy/internal/debuglog"
+	"github.com/toto/withingy/internal/httpx"
 	"github.com/toto/withingy/internal/tokens"
 )
 
@@ -77,7 +79,7 @@ func NewClient(cfg *config.Config, store *tokens.Store, opts ...ClientOption) *C
 		cfg:        cfg,
 		store:      store,
 		refresher:  auth.NewFlow(cfg, store),
-		httpClient: &http.Client{Timeout: defaultRequestTimeout},
+		httpClient: httpx.NewClient(defaultRequestTimeout, "api"),
 		now:        time.Now,
 		sleepFn:    sleepWithContext,
 		backoff:    defaultBackoff,
@@ -279,12 +281,33 @@ func (c *Client) ensureValidToken(ctx context.Context) (*tokens.Token, error) {
 		c.token = token
 	}
 
-	if time.Until(c.token.ExpiresAt) <= tokenRefreshLeeway {
+	remaining := c.token.ExpiresAt.Sub(c.now())
+	debuglog.Default().Log("api.token.check", map[string]any{
+		"access_token_fp":   debuglog.Fingerprint(c.token.AccessToken),
+		"refresh_token_set": strings.TrimSpace(c.token.RefreshToken) != "",
+		"expires_at":        c.token.ExpiresAt.UTC().Format(time.RFC3339),
+		"remaining_ms":      remaining.Milliseconds(),
+		"refresh_leeway_ms": tokenRefreshLeeway.Milliseconds(),
+		"refresh_needed":    remaining <= tokenRefreshLeeway,
+	})
+	if remaining <= tokenRefreshLeeway {
+		debuglog.Default().Log("api.token.refresh.start", map[string]any{"reason": "expiry_leeway"})
 		token, err := c.refresher.Refresh(ctx)
 		if err != nil {
+			debuglog.Default().Log("api.token.refresh.error", map[string]any{
+				"reason": "expiry_leeway",
+				"error":  err.Error(),
+			})
 			return nil, err
 		}
 		c.token = token
+		debuglog.Default().Log("api.token.refresh.success", map[string]any{
+			"reason":            "expiry_leeway",
+			"access_token_fp":   debuglog.Fingerprint(token.AccessToken),
+			"refresh_token_set": strings.TrimSpace(token.RefreshToken) != "",
+			"expires_at":        token.ExpiresAt.UTC().Format(time.RFC3339),
+			"remaining_ms":      token.ExpiresAt.Sub(c.now()).Milliseconds(),
+		})
 	}
 
 	return c.token, nil
@@ -293,11 +316,23 @@ func (c *Client) ensureValidToken(ctx context.Context) (*tokens.Token, error) {
 func (c *Client) forceRefresh(ctx context.Context) (*tokens.Token, error) {
 	c.tokenMu.Lock()
 	defer c.tokenMu.Unlock()
+	debuglog.Default().Log("api.token.refresh.start", map[string]any{"reason": "http_401"})
 	token, err := c.refresher.Refresh(ctx)
 	if err != nil {
+		debuglog.Default().Log("api.token.refresh.error", map[string]any{
+			"reason": "http_401",
+			"error":  err.Error(),
+		})
 		return nil, err
 	}
 	c.token = token
+	debuglog.Default().Log("api.token.refresh.success", map[string]any{
+		"reason":            "http_401",
+		"access_token_fp":   debuglog.Fingerprint(token.AccessToken),
+		"refresh_token_set": strings.TrimSpace(token.RefreshToken) != "",
+		"expires_at":        token.ExpiresAt.UTC().Format(time.RFC3339),
+		"remaining_ms":      token.ExpiresAt.Sub(c.now()).Milliseconds(),
+	})
 	return token, nil
 }
 

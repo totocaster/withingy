@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/toto/withingy/internal/config"
+	"github.com/toto/withingy/internal/debuglog"
+	"github.com/toto/withingy/internal/httpx"
 	"github.com/toto/withingy/internal/tokens"
 )
 
@@ -41,12 +43,10 @@ type Flow struct {
 // NewFlow returns a Flow with sane defaults.
 func NewFlow(cfg *config.Config, store *tokens.Store) *Flow {
 	return &Flow{
-		cfg:   cfg,
-		store: store,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		now: time.Now,
+		cfg:        cfg,
+		store:      store,
+		httpClient: httpx.NewClient(30*time.Second, "auth"),
+		now:        time.Now,
 	}
 }
 
@@ -89,9 +89,14 @@ func (f *Flow) ExchangeCode(ctx context.Context, code, redirectURI string, _ *PK
 	if code == "" {
 		return nil, errors.New("authorization code is empty")
 	}
+	debuglog.Default().Log("auth.exchange.start", map[string]any{
+		"redirect_uri": redirectURI,
+		"code_hash":    debuglog.Fingerprint(code),
+	})
 
 	nonce, err := f.getNonce(ctx)
 	if err != nil {
+		debuglog.Default().Log("auth.exchange.nonce_error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
 
@@ -106,11 +111,14 @@ func (f *Flow) ExchangeCode(ctx context.Context, code, redirectURI string, _ *PK
 
 	token, err := f.postToken(ctx, form)
 	if err != nil {
+		debuglog.Default().Log("auth.exchange.error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
 	if err := f.store.Save(token); err != nil {
+		debuglog.Default().Log("auth.exchange.save_error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
+	debuglog.Default().Log("auth.exchange.success", tokenLogFields(token, f.now()))
 	return token, nil
 }
 
@@ -118,14 +126,22 @@ func (f *Flow) ExchangeCode(ctx context.Context, code, redirectURI string, _ *PK
 func (f *Flow) Refresh(ctx context.Context) (*tokens.Token, error) {
 	current, err := f.store.Load()
 	if err != nil {
+		debuglog.Default().Log("auth.refresh.load_error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
 	if current == nil || current.RefreshToken == "" {
 		return nil, errors.New("no refresh token available")
 	}
+	debuglog.Default().Log("auth.refresh.start", map[string]any{
+		"refresh_token_fp": debuglog.Fingerprint(current.RefreshToken),
+		"access_token_fp":  debuglog.Fingerprint(current.AccessToken),
+		"expires_at":       current.ExpiresAt.UTC().Format(time.RFC3339),
+		"remaining_ms":     time.Until(current.ExpiresAt).Milliseconds(),
+	})
 
 	nonce, err := f.getNonce(ctx)
 	if err != nil {
+		debuglog.Default().Log("auth.refresh.nonce_error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
 
@@ -139,11 +155,14 @@ func (f *Flow) Refresh(ctx context.Context) (*tokens.Token, error) {
 
 	token, err := f.postToken(ctx, form)
 	if err != nil {
+		debuglog.Default().Log("auth.refresh.error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
 	if err := f.store.Save(token); err != nil {
+		debuglog.Default().Log("auth.refresh.save_error", map[string]any{"error": err.Error()})
 		return nil, err
 	}
+	debuglog.Default().Log("auth.refresh.success", tokenLogFields(token, f.now()))
 	return token, nil
 }
 
@@ -173,6 +192,10 @@ func (f *Flow) getNonce(ctx context.Context) (string, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		body := ioReadLimited(resp.Body)
+		debuglog.Default().Log("auth.nonce.http_error", map[string]any{
+			"status_code": resp.StatusCode,
+			"body":        body,
+		})
 		return "", fmt.Errorf("nonce request failed: %d %s: %s", resp.StatusCode, resp.Status, body)
 	}
 
@@ -187,6 +210,10 @@ func (f *Flow) getNonce(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("decode nonce response: %w", err)
 	}
 	if payload.Status != 0 {
+		debuglog.Default().Log("auth.nonce.status_error", map[string]any{
+			"status": payload.Status,
+			"error":  payload.Error,
+		})
 		if payload.Error != "" {
 			return "", fmt.Errorf("nonce request failed: status %d: %s", payload.Status, payload.Error)
 		}
@@ -195,6 +222,9 @@ func (f *Flow) getNonce(ctx context.Context) (string, error) {
 	if strings.TrimSpace(payload.Body.Nonce) == "" {
 		return "", errors.New("nonce response missing nonce")
 	}
+	debuglog.Default().Log("auth.nonce.success", map[string]any{
+		"nonce_fp": debuglog.Fingerprint(payload.Body.Nonce),
+	})
 	return payload.Body.Nonce, nil
 }
 
@@ -212,6 +242,10 @@ func (f *Flow) postToken(ctx context.Context, form url.Values) (*tokens.Token, e
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		body := ioReadLimited(resp.Body)
+		debuglog.Default().Log("auth.token.http_error", map[string]any{
+			"status_code": resp.StatusCode,
+			"body":        body,
+		})
 		return nil, fmt.Errorf("token request failed: %d %s: %s", resp.StatusCode, resp.Status, body)
 	}
 
@@ -224,6 +258,10 @@ func (f *Flow) postToken(ctx context.Context, form url.Values) (*tokens.Token, e
 		return nil, fmt.Errorf("decode token response: %w", err)
 	}
 	if payload.Status != 0 {
+		debuglog.Default().Log("auth.token.status_error", map[string]any{
+			"status": payload.Status,
+			"error":  payload.Error,
+		})
 		if payload.Error != "" {
 			return nil, fmt.Errorf("token request failed: status %d: %s", payload.Status, payload.Error)
 		}
@@ -241,14 +279,24 @@ func (f *Flow) postToken(ctx context.Context, form url.Values) (*tokens.Token, e
 	if tokenType == "" {
 		tokenType = "Bearer"
 	}
-
-	return &tokens.Token{
+	now := f.now()
+	token := &tokens.Token{
 		AccessToken:  payload.Body.AccessToken,
 		RefreshToken: payload.Body.RefreshToken,
 		TokenType:    tokenType,
 		Scope:        parseScopes(payload.Body.Scope),
-		ExpiresAt:    f.now().Add(time.Duration(expiresIn) * time.Second),
-	}, nil
+		ExpiresAt:    now.Add(time.Duration(expiresIn) * time.Second),
+	}
+	fields := tokenLogFields(token, now)
+	fields["expires_in_seconds"] = expiresIn
+	fields["token_type"] = tokenType
+	fields["scope_raw"] = payload.Body.Scope
+	if serverTime, ok := debuglog.ParseResponseDate(resp); ok {
+		fields["response_date"] = serverTime.Format(time.RFC3339)
+		fields["clock_skew_ms"] = serverTime.Sub(now.UTC()).Milliseconds()
+	}
+	debuglog.Default().Log("auth.token.success", fields)
+	return token, nil
 }
 
 func (f *Flow) scopeString() string {
@@ -319,4 +367,17 @@ func ioReadLimited(body io.Reader) string {
 	buf := make([]byte, limit)
 	n, _ := body.Read(buf)
 	return string(buf[:n])
+}
+
+func tokenLogFields(token *tokens.Token, now time.Time) map[string]any {
+	if token == nil {
+		return nil
+	}
+	return map[string]any{
+		"access_token_fp":  debuglog.Fingerprint(token.AccessToken),
+		"refresh_token_fp": debuglog.Fingerprint(token.RefreshToken),
+		"expires_at":       token.ExpiresAt.UTC().Format(time.RFC3339),
+		"remaining_ms":     token.ExpiresAt.Sub(now).Milliseconds(),
+		"scopes":           token.Scope,
+	}
 }

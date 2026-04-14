@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/toto/withingy/internal/debuglog"
 	"github.com/toto/withingy/internal/paths"
 )
 
@@ -70,6 +71,7 @@ func (s *Store) Load() (*Token, error) {
 	if err := json.Unmarshal(data, &token); err != nil {
 		return nil, fmt.Errorf("parse token file: %w", err)
 	}
+	debuglog.Default().Log("tokens.load", tokenFields("load", s.path, &token))
 	return &token, nil
 }
 
@@ -94,6 +96,7 @@ func (s *Store) Save(token *Token) error {
 	if err := os.Rename(tmp, s.path); err != nil {
 		return fmt.Errorf("rename token file: %w", err)
 	}
+	debuglog.Default().Log("tokens.save", tokenFields("save", s.path, token))
 	return nil
 }
 
@@ -104,5 +107,23 @@ func (s *Store) Clear() error {
 	if err := os.Remove(s.path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("remove token file: %w", err)
 	}
+	debuglog.Default().Log("tokens.clear", map[string]any{"path": s.path})
 	return nil
+}
+
+func tokenFields(operation, path string, token *Token) map[string]any {
+	fields := map[string]any{
+		"operation": operation,
+		"path":      path,
+	}
+	if token == nil {
+		return fields
+	}
+	fields["access_token_fp"] = debuglog.Fingerprint(token.AccessToken)
+	fields["refresh_token_fp"] = debuglog.Fingerprint(token.RefreshToken)
+	fields["expires_at"] = token.ExpiresAt.UTC().Format(time.RFC3339)
+	fields["remaining_ms"] = time.Until(token.ExpiresAt).Milliseconds()
+	fields["token_type"] = token.TokenType
+	fields["scopes"] = token.Scope
+	return fields
 }

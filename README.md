@@ -80,6 +80,7 @@ Environment overrides:
 - `WITHINGY_REDIRECT_URI`
 - `WITHINGY_SCOPES`
 - `WITHINGY_CONFIG_DIR`
+- `WITHINGY_DEBUG_AUTH_LOG` (`stderr` or a file path for redacted auth/debug events)
 
 ## Auth notes
 
@@ -88,6 +89,7 @@ The auth flow is Withings-specific, not WHOOP-compatible:
 - browser authorization uses `account.withings.com/oauth2_user/authorize2`
 - token exchange uses signed requests against `wbsapi.withings.net`
 - refresh tokens rotate and are replaced on refresh
+- auth/debug logging can be enabled with `WITHINGY_DEBUG_AUTH_LOG=/tmp/withingy-auth.log`
 
 The current Withings docs reviewed during the transplant say loopback redirect URIs may be disallowed, but the CLI still preserves the same localhost callback/manual-paste workflow that `whoopy` used. If automatic callback auth fails, use manual mode and inspect [`docs/status.md`](docs/status.md) for the current caveats.
 

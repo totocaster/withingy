@@ -56,9 +56,17 @@ var diagCmd = &cobra.Command{
 }
 
 type diagReport struct {
+	Clock  diagClockInfo  `json:"clock"`
 	Config diagConfigInfo `json:"config"`
 	Tokens diagTokenInfo  `json:"tokens"`
 	API    diagAPIInfo    `json:"api"`
+}
+
+type diagClockInfo struct {
+	LocalNow     string `json:"local_now"`
+	UTCNow       string `json:"utc_now"`
+	TimezoneName string `json:"timezone_name"`
+	OffsetMin    int    `json:"offset_min"`
 }
 
 type diagConfigInfo struct {
@@ -95,6 +103,7 @@ type diagAPIInfo struct {
 }
 
 func gatherDiagnostics(ctx context.Context) (*diagReport, error) {
+	clockInfo := gatherClockInfo()
 	cfgInfo := gatherConfigInfo()
 	tokenInfo := gatherTokenInfo()
 
@@ -109,10 +118,22 @@ func gatherDiagnostics(ctx context.Context) (*diagReport, error) {
 	}
 
 	return &diagReport{
+		Clock:  clockInfo,
 		Config: cfgInfo,
 		Tokens: tokenInfo,
 		API:    apiInfo,
 	}, nil
+}
+
+func gatherClockInfo() diagClockInfo {
+	now := time.Now()
+	zoneName, offsetSec := now.Zone()
+	return diagClockInfo{
+		LocalNow:     now.Format(time.RFC3339),
+		UTCNow:       now.UTC().Format(time.RFC3339),
+		TimezoneName: zoneName,
+		OffsetMin:    offsetSec / 60,
+	}
 }
 
 func gatherConfigInfo() diagConfigInfo {
@@ -208,6 +229,13 @@ func formatDiagText(report *diagReport) string {
 		return "No diagnostics collected."
 	}
 	var b strings.Builder
+	fmt.Fprintf(&b, "Clock\n")
+	fmt.Fprintf(&b, "  Local Now: %s\n", safeValue(report.Clock.LocalNow))
+	fmt.Fprintf(&b, "  UTC Now: %s\n", safeValue(report.Clock.UTCNow))
+	fmt.Fprintf(&b, "  Timezone: %s\n", safeValue(report.Clock.TimezoneName))
+	fmt.Fprintf(&b, "  Offset Minutes: %d\n", report.Clock.OffsetMin)
+
+	fmt.Fprintf(&b, "\n")
 	fmt.Fprintf(&b, "Config\n")
 	fmt.Fprintf(&b, "  Path: %s\n", safeValue(report.Config.Path))
 	fmt.Fprintf(&b, "  Exists: %s\n", formatBool(report.Config.Exists))
